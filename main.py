@@ -246,24 +246,25 @@ if __name__ == '__main__':
     with open(os.path.join('./models', args.name, args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch+"_losses.pkl"), 'wb') as f:
         pickle.dump(overall_loss, f)
     if not os.path.isfile('main_results.csv'):
-        output_dict = {'Cultivar':list(valid_cultivars), 'ConcatE':[float("nan")]*len(valid_cultivars), 'MultiH':[float("nan")]*len(valid_cultivars), 'Single':[float("nan")]*len(valid_cultivars), 'Ferguson':[float("nan")]*len(valid_cultivars)}  
+        output_dict = {'Cultivar':list(sorted(valid_cultivars)), 'ConcatE':[float("nan")]*len(valid_cultivars), 'MultiH':[float("nan")]*len(valid_cultivars), 'Single':[float("nan")]*len(valid_cultivars), 'Ferguson':[float("nan")]*len(valid_cultivars)}  
         with open('output_dict.pkl','wb') as f:
             pickle.dump(output_dict,f)
+        pd.DataFrame.from_dict(output_dict).to_csv('main_results.csv',index=False)    
     name_mapping = {'single':'Single', 'mtl':'MultiH', 'ferguson':'Ferguson', 'concat_embedding':'ConcatE'}
     with open('output_dict.pkl','rb') as f:
         output_dict = pickle.load(f)
-    with open('main_results.csv','a') as f:
-        for cidx, cultivar in enumerate(valid_cultivars):
-            average_loss = 0
-            if args.experiment in ['single','ferguson']:
-                for trial in range(3):
-                    average_loss += overall_loss[cultivar]['trial_'+str(trial)][cultivar][1]
-            else:
-                for trial in range(3):
-                    average_loss += overall_loss[args.experiment]['trial_'+str(trial)][cultivar][1]
-            average_loss /= 3
-            output_dict[name_mapping[args.experiment]][cidx] = average_loss
-    if not pd.DataFrame.from_dict(output_dict).isnull().values.any():
-        pd.DataFrame.from_dict(output_dict).to_csv('main_results.csv',index=False)
-        os.remove('output_dict.pkl')
+    for cidx, cultivar in enumerate(sorted(valid_cultivars)):
+        average_loss = 0
+        if args.experiment in ['single','ferguson']:
+            for trial in range(3):
+                average_loss += overall_loss[cultivar]['trial_'+str(trial)][cultivar][1]
+        else:
+            for trial in range(3):
+                average_loss += overall_loss[args.experiment]['trial_'+str(trial)][cultivar][1]
+        average_loss /= 3
+        output_dict[name_mapping[args.experiment]][cidx] = average_loss
+    with open('output_dict.pkl','wb') as f:
+        pickle.dump(output_dict,f)
+    pd.DataFrame.from_dict(output_dict).to_csv('main_results.csv',index=False)
+        
         

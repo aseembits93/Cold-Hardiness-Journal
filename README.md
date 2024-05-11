@@ -3,7 +3,7 @@
 * Set up a new conda environment ```conda create -n chjournal python=3.9```
 * ```conda activate chjournal```
 * Set up conda environment with required packages in requirements.txt ```pip install -r requirements.txt```
-* Install pytorch using ```conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch```
+* Install pytorch using ```conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 pytorch-cuda=11.7 -c pytorch -c nvidia```
 
 # Running the model
 

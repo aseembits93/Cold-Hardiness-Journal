@@ -3,5 +3,6 @@ tqdm
 IProgress
 pandas
 matplotlib
-sklearn
+scikit-learn
 scipy
+tensorboard
