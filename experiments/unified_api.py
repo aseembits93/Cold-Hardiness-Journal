@@ -24,7 +24,6 @@ def run_experiment(args, finetune=False):
     model.to(args.device)
     trainable_params = sum([np.prod(p.size()) for p in filter(
         lambda p: p.requires_grad, model.parameters())])
-    print("Trainable Parameters:", trainable_params)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.MSELoss(reduction='none')
     criterion.to(args.device)
@@ -136,30 +135,30 @@ def run_experiment(args, finetune=False):
     return loss_dict
 
 def run_eval(args, finetune=False):
+    modelSavePath = './models/'
     dataset = args.dataset
     feature_len = dataset['train']['x'].shape[-1]
     no_of_cultivars = args.no_of_cultivars
-    model = args.nn_model(feature_len, no_of_cultivars, args.nonlinear)
-    #model.load_state_dict(torch.load('./eval/mtl_all.pt'))
-    model.load_state_dict(torch.load('./eval/single/'+args.current_cultivar+'/'+args.trial+'/single.pt'))
+    model = args.nn_model(feature_len, no_of_cultivars, nonlinear = args.nonlinear)
+    model.load_state_dict(torch.load(os.path.join(modelSavePath, args.name, args.current_cultivar, args.trial,args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch+".pt")), strict=False)
     model.to(args.device)
     trainable_params = sum([np.prod(p.size()) for p in filter(
         lambda p: p.requires_grad, model.parameters())])
-    print("Trainable Parameters:", trainable_params)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.MSELoss(reduction='none')
     criterion.to(args.device)
+    train_dataset = MyDataset(dataset['train'])
+    trainLoader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_dataset = MyDataset(dataset['test'])
     valLoader = DataLoader(val_dataset, batch_size=2, shuffle=False)
     # Validation Loop
+    loss_dict = dict()
     total_loss_lt_10, total_loss_lt_50, total_loss_lt_90 = 0, 0, 0
     with torch.no_grad():
         model.eval()
         for i, ((x, y, cultivar_id, freq), cultivar) in enumerate(zip(valLoader,args.cultivar_list)):
-            print('i',i, 'cultivar', cultivar)
             x_torch = x.to(args.device)
             y_torch = y.to(args.device)
-            #print(y_torch[1,:,1])
             cultivar_id_torch = cultivar_id.to(args.device)
             out_lt_10, out_lt_50, out_lt_90, out_ph, _ = model(x_torch, cultivar_label=cultivar_id_torch)
             #replace nan in gt with 0s, replace corresponding values in pred with 0s
@@ -173,8 +172,12 @@ def run_eval(args, finetune=False):
             loss_lt_10 = criterion(out_lt_10[:,:,0], y_torch[:, :, 0])[~nan_locs_lt_10].mean().item()  # LT10 GT
             loss_lt_50 = criterion(out_lt_50[:,:,0], y_torch[:, :, 1])[~nan_locs_lt_50].mean().item()
             loss_lt_90 = criterion(out_lt_90[:,:,0], y_torch[:, :, 2])[~nan_locs_lt_90].mean().item()
-            #first dim is model, 2nd dim is eval cultivar
-            args.loss_array[args.cultivar_dict[args.current_cultivar],args.cultivar_dict[cultivar]]+=np.sqrt(loss_lt_50)
+            total_loss_lt_10+=loss_lt_10
+            total_loss_lt_50+=loss_lt_50
+            total_loss_lt_90+=loss_lt_90
+            loss_dict[cultivar] = list([np.sqrt(loss_lt_10), np.sqrt(loss_lt_50), np.sqrt(loss_lt_90)])
+    loss_dict['overall'] = list([np.sqrt(total_loss_lt_10), np.sqrt(total_loss_lt_50), np.sqrt(total_loss_lt_90)])
+    return loss_dict
 
 def run_model_selection(args, finetune=False):
     # from util.create_dataset import create_dataset_multiple_cultivars

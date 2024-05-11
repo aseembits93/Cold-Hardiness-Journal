@@ -2,7 +2,7 @@ import argparse
 import datetime
 from util.create_dataset import create_dataset_multiple_cultivars
 import torch
-
+from pathlib import Path
 import os
 import pickle
 import glob
@@ -35,11 +35,13 @@ if __name__ == '__main__':
     parser.add_argument('--evalpath', type=int,
                         default=None, help="Evaluation Path")
     parser.add_argument('--data_path', type=str,
-                        default='./data/valid/', help="csv Path")
+                        default='./data/grapes/', help="csv Path")
     parser.add_argument('--pretrained_path', type=str, default=None,
                         help="pretrained model to load for finetuning")
     parser.add_argument('--specific_cultivar', type=str, default=None,
                         help="specific cultivar to train for")
+    parser.add_argument('--evaluation', action='store_true',
+                        help="evaluation mode")
     args = parser.parse_args()
     valid_cultivars = ['Zinfandel',
                        'Cabernet Franc',
@@ -109,11 +111,10 @@ if __name__ == '__main__':
     args.label = ['LTE10', 'LTE50', 'LTE90']
     args.device = torch.device(
         "cuda") if torch.cuda.is_available() else torch.device("cpu")
-    if args.experiment in ['model_selection']:
-        from experiments.unified_api import run_model_selection as run_experiment
+    if args.evaluation:
+        from experiments.unified_api import run_eval as run_experiment
     else:
         from experiments.unified_api import run_experiment    
-    print(args.experiment, "experiment")
     if args.experiment=='ferguson':
         pass
     else:
@@ -135,7 +136,6 @@ if __name__ == '__main__':
     elif args.experiment in ['single']:
         valid_cultivars = valid_cultivars if args.specific_cultivar is None else list([
                                                                                       args.specific_cultivar])
-        print("valid_cultivars", valid_cultivars)
         args.nn_model = nn_model
         for left_out in valid_cultivars:
             gc.collect()
@@ -228,7 +228,6 @@ if __name__ == '__main__':
                 args.dataset = create_dataset_multiple_cultivars(args)
                 loss_dicts[args.trial] = run_experiment(args)
             # similar for all experiments
-            print("before finetune", loss_dicts)
             for left_out in valid_cultivars:
                 gc.collect()
                 args.cultivar_list = list([left_out])
@@ -242,8 +241,29 @@ if __name__ == '__main__':
                 for trial in range(3):
                     args.trial = 'trial_'+str(trial)
                     loss_dicts[args.trial].update(finetune_loss_dicts[args.trial])
-            print("after finetune", loss_dicts)
             overall_loss[args.experiment] = loss_dicts
-    print(overall_loss)
+    Path(os.path.join('./models', args.name)).mkdir(parents=True, exist_ok=True)
     with open(os.path.join('./models', args.name, args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch+"_losses.pkl"), 'wb') as f:
         pickle.dump(overall_loss, f)
+    if not os.path.isfile('main_results.csv'):
+        output_dict = {'Cultivar':list(valid_cultivars), 'ConcatE':[float("nan")]*len(valid_cultivars), 'MultiH':[float("nan")]*len(valid_cultivars), 'Single':[float("nan")]*len(valid_cultivars), 'Ferguson':[float("nan")]*len(valid_cultivars)}  
+        with open('output_dict.pkl','wb') as f:
+            pickle.dump(output_dict,f)
+    name_mapping = {'single':'Single', 'mtl':'MultiH', 'ferguson':'Ferguson', 'concat_embedding':'ConcatE'}
+    with open('output_dict.pkl','rb') as f:
+        output_dict = pickle.load(f)
+    with open('main_results.csv','a') as f:
+        for cidx, cultivar in enumerate(valid_cultivars):
+            average_loss = 0
+            if args.experiment in ['single','ferguson']:
+                for trial in range(3):
+                    average_loss += overall_loss[cultivar]['trial_'+str(trial)][cultivar][1]
+            else:
+                for trial in range(3):
+                    average_loss += overall_loss[args.experiment]['trial_'+str(trial)][cultivar][1]
+            average_loss /= 3
+            output_dict[name_mapping[args.experiment]][cidx] = average_loss
+    if not pd.DataFrame.from_dict(output_dict).isnull().values.any():
+        pd.DataFrame.from_dict(output_dict).to_csv('main_results.csv',index=False)
+        os.remove('output_dict.pkl')
+        

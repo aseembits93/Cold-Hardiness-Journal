@@ -1,20 +1,25 @@
 # Setup
 
+* Set up a new conda environment ```conda create -n chjournal python=3.9```
+* ```conda activate chjournal```
 * Set up conda environment with required packages in requirements.txt ```pip install -r requirements.txt```
 * Install pytorch using ```conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch```
 
-* Get models from [HERE](https://drive.google.com/drive/folders/19XEh8unC0wuQmslc3mTXAcley2-Bkgvb?usp=sharing)
-
-* Download data and put in ./data/valid [https://github.com/AgAIDInstitute/Frost_Mitigation_Datasets/tree/master/ColdHardiness/Grapes/Processed/WashingtonState/Prosser/Python] [Note: this needs to be changed to pull directly from GitHub, but has not been done (yet) to make sure data is consistent across experiments] 
-
 # Running the model
 
-* Use this command to train the models
+* Use the following commands to train the baseline models
 ```
-python main.py --experiment {single, mtl, concat_embedding}
+python main.py --experiment concat_embedding --name journal_concate
+python main.py --experiment mtl --name journal_multih
+python main.py --experiment single --name journal_single
+python main.py --experiment ferguson --name ferguson
 ```
-* single = Single Task Learning Model
-* mtl = MultiHead Model
-* concat_embedding = Concatenation Embedding Model
+* Use the following commands to generate the main set of grape cold hardiness results. If you don't want to train the models from scratch, I've uploaded the pretrained models [here](https://oregonstate.box.com/s/981pith51vryyoe2ec5vmegjxj0kf5e2)
+```
+python main.py --experiment concat_embedding --name journal_concate --evaluation
+python main.py --experiment mtl --name journal_multih --evaluation
+python main.py --experiment single --name journal_single --evaluation
+python main.py --experiment ferguson --name ferguson --evaluation
+```
 
-Have a look at 'standalone_prediction.py' to get an idea about model deployment. It is set up with a default evaluation dataset and default pretrained model which can easily be changed.
+* a copy of the generated results is available in ```results/```
