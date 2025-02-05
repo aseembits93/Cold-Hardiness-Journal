@@ -263,8 +263,5 @@ if __name__ == '__main__':
                 average_loss += overall_loss[args.experiment]['trial_'+str(trial)][cultivar][1]
         average_loss /= 3
         output_dict[name_mapping[args.experiment]][cidx] = average_loss
-    with open('output_dict.pkl','wb') as f:
-        pickle.dump(output_dict,f)
-    pd.DataFrame.from_dict(output_dict).to_csv('main_results.csv',index=False)
         
         
