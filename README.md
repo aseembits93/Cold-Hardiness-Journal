@@ -1,3 +1,15 @@
+# Docker Quick Setup
+
+```
+docker build -t aseembits93/cold_hardiness_journal .
+```
+
+```
+docker run docker.io/aseembits93/cold_hardiness_journal:latest
+```
+
+![alt text](Screenshot.png "Title")
+
 # Setup
 
 * Set up a new conda environment ```conda create -n chjournal python=3.9```

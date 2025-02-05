@@ -142,7 +142,7 @@ def split_and_normalize(_df, season_max_length, seasons, features, ferguson_feat
             (_x, np.zeros((season_max_length - len(season), len(features)))), axis=0)
 
         add_array = np.zeros((season_max_length - len(season), len(label)))
-        add_array[:] = np.NaN
+        add_array[:] = np.nan
 
         _y = _df.loc[season, :][label].to_numpy()
         _y = np.concatenate((_y, add_array), axis=0)
@@ -153,7 +153,7 @@ def split_and_normalize(_df, season_max_length, seasons, features, ferguson_feat
         #_y = np.reshape(_y, (_y.shape[0], _y.shape[1], _y.shape[2], 1))
         add_ferguson = np.zeros(
             (season_max_length - len(season), len(ferguson_features)))
-        add_ferguson[:] = np.NaN
+        add_ferguson[:] = np.nan
         _ferguson = _df.loc[season, :][ferguson_features].to_numpy()
         _ferguson = np.concatenate((_ferguson, add_ferguson), axis=0)
 

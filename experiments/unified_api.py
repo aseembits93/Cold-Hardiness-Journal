@@ -2,7 +2,7 @@ import torch
 from util.create_dataset import MyDataset, get_not_nan
 from util.data_processing import evaluate
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, TensorDataset, Dataset
 import torch.nn as nn
 import os
@@ -27,15 +27,16 @@ def run_experiment(args, finetune=False):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.MSELoss(reduction='none')
     criterion.to(args.device)
-    if finetune:
-        log_dir = os.path.join('./tensorboard/',args.name, args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch+"_finetune", args.trial, args.current_cultivar)
-    else:
-        log_dir = os.path.join('./tensorboard/',args.name, args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch, args.trial, args.current_cultivar)
-    writer = SummaryWriter(log_dir)
+    # if finetune:
+    #     log_dir = os.path.join('./tensorboard/',args.name, args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch+"_finetune", args.trial, args.current_cultivar)
+    # else:
+    #     log_dir = os.path.join('./tensorboard/',args.name, args.experiment+'_setting_'+args.setting+'_variant_'+args.variant+'_weighting_'+args.weighting+'_unfreeze_'+args.unfreeze+'_nonlinear_'+args.nonlinear+'_scratch_'+args.scratch, args.trial, args.current_cultivar)
+    # writer = SummaryWriter(log_dir)
     train_dataset = MyDataset(dataset['train'])
     trainLoader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_dataset = MyDataset(dataset['test'])
     valLoader = DataLoader(val_dataset, batch_size=2, shuffle=False)
+    print("Training Started")
     for epoch in range(args.epochs):
         # Training Loop
         model.train()
@@ -73,7 +74,8 @@ def run_experiment(args, finetune=False):
             loss.backward()             # backward +
             optimizer.step()            # optimize
             total_loss += loss.item()
-        writer.add_scalar('Train_Loss', total_loss / count, epoch)
+        #writer.add_scalar('Train_Loss', total_loss / count, epoch)
+            print('Train_Loss', total_loss)
         # Validation Loop
         with torch.no_grad():
             model.eval()
@@ -99,7 +101,8 @@ def run_experiment(args, finetune=False):
                 loss_lt_90 = criterion(out_lt_90[:,:,0], y_torch[:, :, 2])[~nan_locs_lt_90]
                 loss = loss_lt_10.mean() + loss_lt_50.mean() + loss_lt_90.mean()
                 total_loss += loss.mean().item()
-            writer.add_scalar('Val_Loss', total_loss / count, epoch)
+            #writer.add_scalar('Val_Loss', total_loss / count, epoch)
+                print('Val_Loss', total_loss)
     loss_dict = dict()
     modelSavePath = "./models/"
     Path(os.path.join(modelSavePath, args.name, args.current_cultivar, args.trial)).mkdir(parents=True, exist_ok=True)
